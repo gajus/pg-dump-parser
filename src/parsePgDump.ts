@@ -101,7 +101,7 @@ const parseHeader = (fragment: string) => {
   return result.data;
 };
 
-type SchemaObject = {
+export type SchemaObject = {
   header: Header;
   sql: string;
 };
