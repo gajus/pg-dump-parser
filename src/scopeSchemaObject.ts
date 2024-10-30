@@ -193,6 +193,36 @@ type AttributedSchemaObject = {
   sql: string;
 };
 
+const findTableLikeOwner = (
+  schemaObjects: AttributedSchemaObject[],
+  name: string,
+  schema: string,
+): SchemaObjectScope | null => {
+  const targetSchemaObject = schemaObjects.find((schemaObject) => {
+    return (
+      ['TABLE', 'VIEW', 'MATERIALIZED VIEW'].includes(
+        schemaObject.header.Type,
+      ) &&
+      schemaObject.header.Name === name &&
+      schemaObject.header.Schema === schema
+    );
+  });
+
+  if (!targetSchemaObject) {
+    return null;
+  }
+
+  return {
+    name,
+    schema,
+    type: targetSchemaObject.header.Type as
+      | 'MATERIALIZED VIEW'
+      | 'TABLE'
+      | 'VIEW',
+  };
+};
+
+// eslint-disable-next-line complexity
 const scopeComment = (
   schemaObjects: AttributedSchemaObject[],
   subject: AttributedSchemaObject,
@@ -212,11 +242,7 @@ const scopeComment = (
       .tuple([z.string(), z.string(), z.string()])
       .parse(target.target.split('.'));
 
-    return {
-      name,
-      schema,
-      type: 'TABLE',
-    };
+    return findTableLikeOwner(schemaObjects, name, schema);
   }
 
   if (target.type === 'EXTENSION') {
@@ -251,11 +277,11 @@ const scopeComment = (
     if (indexSchemaObject) {
       const indexTarget = extractCreateIndexTarget(indexSchemaObject.sql);
 
-      return {
-        name: indexTarget.name,
-        schema: indexTarget.schema,
-        type: 'TABLE',
-      };
+      return findTableLikeOwner(
+        schemaObjects,
+        indexTarget.name,
+        indexTarget.schema,
+      );
     }
 
     const constraintSchemaObject = schemaObjects.find((schemaObject) => {
@@ -269,11 +295,7 @@ const scopeComment = (
     if (constraintSchemaObject) {
       const [tableName] = constraintSchemaObject.header.Name.split(' ');
 
-      return {
-        name: tableName,
-        schema,
-        type: 'TABLE',
-      };
+      return findTableLikeOwner(schemaObjects, tableName, schema);
     }
   }
 

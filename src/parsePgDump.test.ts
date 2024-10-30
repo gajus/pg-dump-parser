@@ -202,6 +202,13 @@ COMMENT ON VIEW public.baz IS 'View comment x';
 
 
 --
+-- Name: COLUMN baz.id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.baz.id IS 'Column comment x';
+
+
+--
 -- Name: corge; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -302,6 +309,13 @@ COMMENT ON MATERIALIZED VIEW public.qux IS 'Materialized view comment x';
 
 
 --
+-- Name: COLUMN qux.id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.qux.id IS 'Column comment x';
+
+
+--
 -- Name: corge id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -343,6 +357,13 @@ COMMENT ON INDEX public.foo_pkey IS 'Index comment x';
 --
 
 CREATE INDEX qux_name_idx ON public.qux USING btree (name);
+
+
+--
+-- Name: INDEX qux_name_idx; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON INDEX public.qux_name_idx IS 'Index comment x';
 
 
 --
@@ -531,7 +552,7 @@ test('extracts COMMENT on MATERIALIZED VIEW', async () => {
   });
 });
 
-test('extracts COMMENT on COLUMN', async () => {
+test('extracts COMMENT on COLUMN (TABLE)', async () => {
   expectSchemeObject({
     header: {
       Name: 'COLUMN foo.id',
@@ -550,7 +571,45 @@ test('extracts COMMENT on COLUMN', async () => {
   });
 });
 
-test('extracts COMMENT on INDEX', async () => {
+test('extracts COMMENT on COLUMN (VIEW)', async () => {
+  expectSchemeObject({
+    header: {
+      Name: 'COLUMN baz.id',
+      Owner: 'postgres',
+      Schema: 'public',
+      Type: 'COMMENT',
+    },
+    scope: {
+      name: 'baz',
+      schema: 'public',
+      type: 'VIEW',
+    },
+    sql: multiline`
+      COMMENT ON COLUMN public.baz.id IS 'Column comment x';
+    `,
+  });
+});
+
+test('extracts COMMENT on COLUMN (MATERIALIZED VIEW)', async () => {
+  expectSchemeObject({
+    header: {
+      Name: 'COLUMN qux.id',
+      Owner: 'postgres',
+      Schema: 'public',
+      Type: 'COMMENT',
+    },
+    scope: {
+      name: 'qux',
+      schema: 'public',
+      type: 'MATERIALIZED VIEW',
+    },
+    sql: multiline`
+      COMMENT ON COLUMN public.qux.id IS 'Column comment x';
+    `,
+  });
+});
+
+test('extracts COMMENT on INDEX (TABLE)', async () => {
   expectSchemeObject({
     header: {
       Name: 'INDEX foo_pkey',
@@ -565,6 +624,25 @@ test('extracts COMMENT on INDEX', async () => {
     },
     sql: multiline`
       COMMENT ON INDEX public.foo_pkey IS 'Index comment x';
+    `,
+  });
+});
+
+test('extracts COMMENT on INDEX (MATERIALIZED VIEW)', async () => {
+  expectSchemeObject({
+    header: {
+      Name: 'INDEX qux_name_idx',
+      Owner: 'postgres',
+      Schema: 'public',
+      Type: 'COMMENT',
+    },
+    scope: {
+      name: 'qux',
+      schema: 'public',
+      type: 'MATERIALIZED VIEW',
+    },
+    sql: multiline`
+      COMMENT ON INDEX public.qux_name_idx IS 'Index comment x';
     `,
   });
 });
