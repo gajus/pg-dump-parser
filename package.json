@@ -26,8 +26,8 @@
   },
   "exports": {
     ".": {
-      "import": "./dist/parsePgDump.js",
-      "types": "./dist/parsePgDump.d.ts"
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
     }
   },
   "files": [
@@ -40,7 +40,7 @@
     "format"
   ],
   "license": "BSD-3-Clause",
-  "main": "./dist/parsePgDump.js",
+  "main": "./dist/index.js",
   "name": "pg-dump-parser",
   "repository": {
     "type": "git",
@@ -55,6 +55,6 @@
     "lint:tsc": "tsc",
     "test:vitest": "vitest --run --passWithNoTests"
   },
-  "types": "./dist/parsePgDump.d.ts",
+  "types": "./dist/index.d.ts",
   "version": "1.0.0"
 }
