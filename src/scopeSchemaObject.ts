@@ -141,16 +141,18 @@ type CommentOnTarget = {
     | 'EXTENSION'
     | 'FUNCTION'
     | 'INDEX'
+    | 'MATERIALIZED VIEW'
     | 'PROCEDURE'
     | 'SEQUENCE'
     | 'TABLE'
-    | 'TYPE';
+    | 'TYPE'
+    | 'VIEW';
 };
 
 const extractCommentOnTarget = (fragment: string): CommentOnTarget => {
   const { target, type } =
     fragment.match(
-      /COMMENT ON (?<type>AGGREGATE|COLUMN|EXTENSION|FUNCTION|INDEX|PROCEDURE|SEQUENCE|TABLE|TYPE)\s(?<target>.+?) IS/u,
+      /COMMENT ON (?<type>AGGREGATE|COLUMN|EXTENSION|FUNCTION|INDEX|MATERIALIZED VIEW|PROCEDURE|SEQUENCE|TABLE|TYPE|VIEW)\s(?<target>.+?) IS/u,
     )?.groups ?? {};
 
   if (!target) {
@@ -189,6 +191,168 @@ export type SchemaObjectScope =
 type AttributedSchemaObject = {
   header: AttributedHeader;
   sql: string;
+};
+
+const scopeComment = (
+  schemaObjects: AttributedSchemaObject[],
+  subject: AttributedSchemaObject,
+): SchemaObjectScope | null => {
+  const target = extractCommentOnTarget(subject.sql);
+
+  if (target.type === 'AGGREGATE') {
+    return {
+      name: extractFunctionLikeName(subject.header.Name),
+      schema: subject.header.Schema ?? 'public',
+      type: 'AGGREGATE',
+    };
+  }
+
+  if (target.type === 'COLUMN') {
+    const [schema, name] = z
+      .tuple([z.string(), z.string(), z.string()])
+      .parse(target.target.split('.'));
+
+    return {
+      name,
+      schema,
+      type: 'TABLE',
+    };
+  }
+
+  if (target.type === 'EXTENSION') {
+    return {
+      name: target.target,
+      schema: null,
+      type: 'EXTENSION',
+    };
+  }
+
+  if (target.type === 'FUNCTION') {
+    return {
+      name: extractFunctionLikeName(subject.header.Name),
+      schema: subject.header.Schema ?? 'public',
+      type: 'FUNCTION',
+    };
+  }
+
+  if (target.type === 'INDEX') {
+    const [schema, indexName] = z
+      .tuple([z.string(), z.string()])
+      .parse(target.target.split('.'));
+
+    const indexSchemaObject = schemaObjects.find((schemaObject) => {
+      if (schemaObject.header.Type !== 'INDEX') {
+        return false;
+      }
+
+      return schemaObject.header.Name === indexName;
+    });
+
+    if (indexSchemaObject) {
+      throw new Error('Not implemented');
+    }
+
+    const constraintSchemaObject = schemaObjects.find((schemaObject) => {
+      if (schemaObject.header.Type !== 'CONSTRAINT') {
+        return false;
+      }
+
+      return schemaObject.header.Name.split(' ')[1] === indexName;
+    });
+
+    if (constraintSchemaObject) {
+      const [tableName] = constraintSchemaObject.header.Name.split(' ');
+
+      return {
+        name: tableName,
+        schema,
+        type: 'TABLE',
+      };
+    }
+  }
+
+  if (target.type === 'MATERIALIZED VIEW') {
+    return {
+      name: subject.header.Name.replace('MATERIALIZED VIEW ', ''),
+      schema: subject.header.Schema ?? 'public',
+      type: 'MATERIALIZED VIEW',
+    };
+  }
+
+  if (target.type === 'PROCEDURE') {
+    return {
+      name: extractFunctionLikeName(subject.header.Name),
+      schema: subject.header.Schema ?? 'public',
+      type: 'PROCEDURE',
+    };
+  }
+
+  if (target.type === 'SEQUENCE') {
+    const [schemaName, sequenceName] = z
+      .tuple([z.string(), z.string()])
+      .parse(target.target.split('.'));
+
+    const sequenceSchemaObject = schemaObjects.find((schemaObject) => {
+      if (schemaObject.header.Type !== 'SEQUENCE') {
+        return false;
+      }
+
+      return (
+        schemaObject.header.Name === sequenceName &&
+        schemaObject.header.Schema === schemaName
+      );
+    });
+
+    if (!sequenceSchemaObject) {
+      throw new Error('Sequence not found');
+    }
+
+    const alterTableTarget = extractAlterTableTarget(sequenceSchemaObject.sql);
+
+    return {
+      name: alterTableTarget.name,
+      schema: alterTableTarget.schema,
+      type: 'TABLE',
+    };
+  }
+
+  if (target.type === 'TABLE') {
+    const [schema, name] = z
+      .tuple([z.string(), z.string()])
+      .parse(target.target.split('.'));
+
+    return {
+      name,
+      schema,
+      type: 'TABLE',
+    };
+  }
+
+  if (target.type === 'VIEW') {
+    const [schema, name] = z
+      .tuple([z.string(), z.string()])
+      .parse(target.target.split('.'));
+
+    return {
+      name,
+      schema,
+      type: 'VIEW',
+    };
+  }
+
+  if (target.type === 'TYPE') {
+    const [, typeName] = z
+      .tuple([z.string(), z.string()])
+      .parse(subject.header.Name.split(' '));
+
+    return {
+      name: typeName,
+      schema: subject.header.Schema ?? 'public',
+      type: 'TYPE',
+    };
+  }
+
+  return null;
 };
 
 // eslint-disable-next-line complexity
@@ -293,142 +457,7 @@ const scopeAttributedSchemaObject = (
   }
 
   if (subject.sql.startsWith('COMMENT ON ')) {
-    const target = extractCommentOnTarget(subject.sql);
-
-    if (target.type === 'EXTENSION') {
-      return {
-        name: target.target,
-        schema: null,
-        type: 'EXTENSION',
-      };
-    }
-
-    if (target.type === 'TABLE') {
-      const [schema, name] = z
-        .tuple([z.string(), z.string()])
-        .parse(target.target.split('.'));
-
-      return {
-        name,
-        schema,
-        type: 'TABLE',
-      };
-    }
-
-    if (target.type === 'COLUMN') {
-      const [schema, name] = z
-        .tuple([z.string(), z.string(), z.string()])
-        .parse(target.target.split('.'));
-
-      return {
-        name,
-        schema,
-        type: 'TABLE',
-      };
-    }
-
-    if (target.type === 'INDEX') {
-      const [schema, indexName] = z
-        .tuple([z.string(), z.string()])
-        .parse(target.target.split('.'));
-
-      const indexSchemaObject = schemaObjects.find((schemaObject) => {
-        if (schemaObject.header.Type !== 'INDEX') {
-          return false;
-        }
-
-        return schemaObject.header.Name === indexName;
-      });
-
-      if (indexSchemaObject) {
-        throw new Error('Not implemented');
-      }
-
-      const constraintSchemaObject = schemaObjects.find((schemaObject) => {
-        if (schemaObject.header.Type !== 'CONSTRAINT') {
-          return false;
-        }
-
-        return schemaObject.header.Name.split(' ')[1] === indexName;
-      });
-
-      if (constraintSchemaObject) {
-        const [tableName] = constraintSchemaObject.header.Name.split(' ');
-
-        return {
-          name: tableName,
-          schema,
-          type: 'TABLE',
-        };
-      }
-    }
-
-    if (target.type === 'SEQUENCE') {
-      const [schemaName, sequenceName] = z
-        .tuple([z.string(), z.string()])
-        .parse(target.target.split('.'));
-
-      const sequenceSchemaObject = schemaObjects.find((schemaObject) => {
-        if (schemaObject.header.Type !== 'SEQUENCE') {
-          return false;
-        }
-
-        return (
-          schemaObject.header.Name === sequenceName &&
-          schemaObject.header.Schema === schemaName
-        );
-      });
-
-      if (!sequenceSchemaObject) {
-        throw new Error('Sequence not found');
-      }
-
-      const alterTableTarget = extractAlterTableTarget(
-        sequenceSchemaObject.sql,
-      );
-
-      return {
-        name: alterTableTarget.name,
-        schema: alterTableTarget.schema,
-        type: 'TABLE',
-      };
-    }
-
-    if (target.type === 'TYPE') {
-      const [, typeName] = z
-        .tuple([z.string(), z.string()])
-        .parse(subject.header.Name.split(' '));
-
-      return {
-        name: typeName,
-        schema: subject.header.Schema ?? 'public',
-        type: 'TYPE',
-      };
-    }
-
-    if (target.type === 'FUNCTION') {
-      return {
-        name: extractFunctionLikeName(subject.header.Name),
-        schema: subject.header.Schema ?? 'public',
-        type: 'FUNCTION',
-      };
-    }
-
-    if (target.type === 'AGGREGATE') {
-      return {
-        name: extractFunctionLikeName(subject.header.Name),
-        schema: subject.header.Schema ?? 'public',
-        type: 'AGGREGATE',
-      };
-    }
-
-    if (target.type === 'PROCEDURE') {
-      return {
-        name: extractFunctionLikeName(subject.header.Name),
-        schema: subject.header.Schema ?? 'public',
-        type: 'PROCEDURE',
-      };
-    }
+    return scopeComment(schemaObjects, subject);
   }
 
   try {

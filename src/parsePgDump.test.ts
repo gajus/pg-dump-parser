@@ -195,6 +195,13 @@ CREATE VIEW public.baz AS
 ALTER VIEW public.baz OWNER TO postgres;
 
 --
+-- Name: VIEW baz; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON VIEW public.baz IS 'View comment x';
+
+
+--
 -- Name: corge; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -286,6 +293,13 @@ CREATE MATERIALIZED VIEW public.qux AS
 
 
 ALTER MATERIALIZED VIEW public.qux OWNER TO postgres;
+
+--
+-- Name: MATERIALIZED VIEW qux; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON MATERIALIZED VIEW public.qux IS 'Materialized view comment x';
+
 
 --
 -- Name: corge id; Type: DEFAULT; Schema: public; Owner: postgres
@@ -475,6 +489,44 @@ test('extracts COMMENT on TABLE', async () => {
     },
     sql: multiline`
       COMMENT ON TABLE public.foo IS 'Table comment x';
+    `,
+  });
+});
+
+test('extracts COMMENT on VIEW', async () => {
+  expectSchemeObject({
+    header: {
+      Name: 'VIEW baz',
+      Owner: 'postgres',
+      Schema: 'public',
+      Type: 'COMMENT',
+    },
+    scope: {
+      name: 'baz',
+      schema: 'public',
+      type: 'VIEW',
+    },
+    sql: multiline`
+      COMMENT ON VIEW public.baz IS 'View comment x';
+    `,
+  });
+});
+
+test('extracts COMMENT on MATERIALIZED VIEW', async () => {
+  expectSchemeObject({
+    header: {
+      Name: 'MATERIALIZED VIEW qux',
+      Owner: 'postgres',
+      Schema: 'public',
+      Type: 'COMMENT',
+    },
+    scope: {
+      name: 'qux',
+      schema: 'public',
+      type: 'MATERIALIZED VIEW',
+    },
+    sql: multiline`
+      COMMENT ON MATERIALIZED VIEW public.qux IS 'Materialized view comment x';
     `,
   });
 });
