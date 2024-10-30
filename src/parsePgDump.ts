@@ -22,6 +22,7 @@ const HeaderZodSchema = z.union([
       'CAST',
       'COMMENT',
       'CONSTRAINT',
+      'DEFAULT ACL',
       'DEFAULT',
       'EXTENSION',
       'FK CONSTRAINT',
