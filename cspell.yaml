@@ -3,7 +3,20 @@ ignoreRegExpList:
 language: en
 version: '0.2'
 words:
+  - citext
+  - corge
+  - fkey
   - gajus
   - kuizinas
+  - MAXVALUE
+  - MINVALUE
+  - nextval
+  - pgcrypto
+  - pkey
+  - plpgsql
+  - regclass
+  - SFUNC
+  - STYPE
+  - tablespace
   - vitest
-  - hdinf
+  - xmloption
