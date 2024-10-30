@@ -249,7 +249,13 @@ const scopeComment = (
     });
 
     if (indexSchemaObject) {
-      throw new Error('Not implemented');
+      const indexTarget = extractCreateIndexTarget(indexSchemaObject.sql);
+
+      return {
+        name: indexTarget.name,
+        schema: indexTarget.schema,
+        type: 'TABLE',
+      };
     }
 
     const constraintSchemaObject = schemaObjects.find((schemaObject) => {
