@@ -101,15 +101,9 @@ const parseHeader = (fragment: string) => {
   return result.data;
 };
 
-type Table = {
-  name: string;
-  schema: string;
-};
-
 type SchemaObject = {
   header: Header;
   sql: string;
-  table?: Table;
 };
 
 export const parsePgDump = (dump: string) => {
