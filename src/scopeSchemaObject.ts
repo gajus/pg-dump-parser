@@ -121,13 +121,13 @@ const extractAlterTableTarget = (fragment: string): TableTarget => {
 
 type CommentOnTarget = {
   target: string;
-  type: 'COLUMN' | 'EXTENSION' | 'INDEX' | 'SEQUENCE' | 'TABLE';
+  type: 'COLUMN' | 'EXTENSION' | 'INDEX' | 'SEQUENCE' | 'TABLE' | 'TYPE';
 };
 
 const extractCommentOnTarget = (fragment: string): CommentOnTarget => {
   const { target, type } =
     fragment.match(
-      /COMMENT ON (?<type>TABLE|EXTENSION|COLUMN|SEQUENCE|INDEX)\s(?<target>\S+)/u,
+      /COMMENT ON (?<type>TABLE|EXTENSION|COLUMN|SEQUENCE|INDEX|TYPE)\s(?<target>\S+)/u,
     )?.groups ?? {};
 
   if (!target) {
@@ -368,6 +368,18 @@ const scopeAttributedSchemaObject = (
         name: alterTableTarget.name,
         schema: alterTableTarget.schema,
         type: 'TABLE',
+      };
+    }
+
+    if (target.type === 'TYPE') {
+      const [, typeName] = z
+        .tuple([z.string(), z.string()])
+        .parse(subject.header.Name.split(' '));
+
+      return {
+        name: typeName,
+        schema: subject.header.Schema ?? 'public',
+        type: 'TYPE',
       };
     }
   }

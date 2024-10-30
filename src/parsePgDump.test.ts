@@ -59,6 +59,13 @@ CREATE TYPE public.status AS ENUM (
 ALTER TYPE public.status OWNER TO postgres;
 
 --
+-- Name: TYPE status; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TYPE public.status IS 'Type comment x';
+
+
+--
 -- Name: CAST (text AS integer); Type: CAST; Schema: -; Owner: -
 --
 
@@ -297,6 +304,13 @@ COMMENT ON INDEX public.foo_pkey IS 'Index comment x';
 
 
 --
+-- Name: qux_name_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX qux_name_idx ON public.qux USING btree (name);
+
+
+--
 -- Name: foo foo_insert_trigger; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
@@ -493,6 +507,25 @@ test('extracts COMMENT on SEQUENCE', async () => {
     },
     sql: multiline`
       COMMENT ON SEQUENCE public.foo_id_seq IS 'Sequence comment x';
+    `,
+  });
+});
+
+test('extracts COMMENT on TYPE', async () => {
+  expectSchemeObject({
+    header: {
+      Name: 'TYPE status',
+      Owner: 'postgres',
+      Schema: 'public',
+      Type: 'COMMENT',
+    },
+    scope: {
+      name: 'status',
+      schema: 'public',
+      type: 'TYPE',
+    },
+    sql: multiline`
+      COMMENT ON TYPE public.status IS 'Type comment x';
     `,
   });
 });
