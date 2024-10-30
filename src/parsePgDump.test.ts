@@ -549,7 +549,7 @@ test('extracts VIEW', async () => {
   });
 });
 
-test.only('extracts MATERIALIZED VIEW', async () => {
+test('extracts MATERIALIZED VIEW', async () => {
   expectSchemeObject({
     header: {
       Name: 'qux',
