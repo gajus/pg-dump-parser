@@ -1,50 +1,56 @@
 import { z } from 'zod';
 
+// These are the attribute less headers, e.g.
+// --
+// -- PostgreSQL database dump
+// --
+const TitleHeaderZodSchema = z.object({
+  Title: z.string(),
+});
+
+// These are the objects with attributes, e.g.
+// --
+// -- Name: citext; Type: EXTENSION; Schema: -; Owner: -
+// --
+const AttributedHeaderZodSchema = z.object({
+  Name: z.string(),
+  Owner: z.string().nullable(),
+  Schema: z.string().nullable(),
+  Type: z.enum([
+    'ACL',
+    'AGGREGATE',
+    'CAST',
+    'COMMENT',
+    'CONSTRAINT',
+    'DEFAULT ACL',
+    'DEFAULT',
+    'EXTENSION',
+    'FK CONSTRAINT',
+    'FUNCTION',
+    'INDEX',
+    'MATERIALIZED VIEW',
+    'PROCEDURE',
+    'PUBLICATION',
+    'SCHEMA',
+    'SEQUENCE OWNED BY',
+    'SEQUENCE',
+    'TABLE',
+    'TEXT SEARCH CONFIGURATION',
+    'TEXT SEARCH DICTIONARY',
+    'TRIGGER',
+    'TYPE',
+    'VIEW',
+  ]),
+});
+
 const HeaderZodSchema = z.union([
-  // These are the attribute less headers, e.g.
-  // --
-  // -- PostgreSQL database dump
-  // --
-  z.object({
-    Title: z.string(),
-  }),
-  // These are the objects with attributes, e.g.
-  // --
-  // -- Name: citext; Type: EXTENSION; Schema: -; Owner: -
-  // --
-  z.object({
-    Name: z.string(),
-    Owner: z.string().nullable(),
-    Schema: z.string().nullable(),
-    Type: z.enum([
-      'ACL',
-      'AGGREGATE',
-      'CAST',
-      'COMMENT',
-      'CONSTRAINT',
-      'DEFAULT ACL',
-      'DEFAULT',
-      'EXTENSION',
-      'FK CONSTRAINT',
-      'FUNCTION',
-      'INDEX',
-      'MATERIALIZED VIEW',
-      'PROCEDURE',
-      'PUBLICATION',
-      'SCHEMA',
-      'SEQUENCE OWNED BY',
-      'SEQUENCE',
-      'TABLE',
-      'TEXT SEARCH CONFIGURATION',
-      'TEXT SEARCH DICTIONARY',
-      'TRIGGER',
-      'TYPE',
-      'VIEW',
-    ]),
-  }),
+  TitleHeaderZodSchema,
+  AttributedHeaderZodSchema,
 ]);
 
-type Header = z.infer<typeof HeaderZodSchema>;
+export type Header = z.infer<typeof HeaderZodSchema>;
+export type TitleHeader = z.infer<typeof TitleHeaderZodSchema>;
+export type AttributedHeader = z.infer<typeof AttributedHeaderZodSchema>;
 
 const isHeader = (fragment: string): boolean => {
   return fragment.startsWith('--\n--');

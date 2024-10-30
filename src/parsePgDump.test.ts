@@ -1,4 +1,6 @@
+import { type SchemaObject } from './parsePgDump';
 import { parsePgDump } from './parsePgDump';
+import { type SchemaObjectScope, scopeSchemaObject } from './scopeSchemaObject';
 import multiline from 'multiline-ts';
 import { expect, test } from 'vitest';
 
@@ -330,38 +332,65 @@ GRANT SELECT(name) ON TABLE public.foo TO postgres;
 --
 `;
 
-test('extracts SEQUENCE', async () => {
+const omit = <T extends Record<string, unknown>>(object: T, keys: string[]) =>
+  Object.fromEntries(
+    Object.entries(object).filter(([key]) => !keys.includes(key)),
+  );
+
+const expectSchemeObject = (
+  expectedSchemaObject: SchemaObject & { scope: SchemaObjectScope | null },
+) => {
   const schemaObjects = parsePgDump(dump);
 
-  expect(schemaObjects).toContainEqual({
+  expect(schemaObjects).toContainEqual(omit(expectedSchemaObject, ['scope']));
+
+  if (typeof expectedSchemaObject.scope === 'undefined') {
+    return;
+  }
+
+  expect(scopeSchemaObject(schemaObjects, expectedSchemaObject)).toEqual(
+    expectedSchemaObject.scope,
+  );
+};
+
+test('extracts SEQUENCE', async () => {
+  expectSchemeObject({
     header: {
       Name: 'bar_id_seq',
       Owner: 'postgres',
       Schema: 'public',
       Type: 'SEQUENCE',
     },
+    scope: {
+      name: 'bar',
+      schema: 'public',
+      type: 'TABLE',
+    },
     sql: multiline`
-      ALTER TABLE public.bar ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
-          SEQUENCE NAME public.bar_id_seq
-          START WITH 1
-          INCREMENT BY 1
-          NO MINVALUE
-          NO MAXVALUE
-          CACHE 1
-      );
-    `,
+        ALTER TABLE public.bar ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+            SEQUENCE NAME public.bar_id_seq
+            START WITH 1
+            INCREMENT BY 1
+            NO MINVALUE
+            NO MAXVALUE
+            CACHE 1
+        );
+      `,
   });
 });
 
 test('extracts TABLE', async () => {
-  const schemaObjects = parsePgDump(dump);
-
-  expect(schemaObjects).toContainEqual({
+  expectSchemeObject({
     header: {
       Name: 'foo',
       Owner: 'postgres',
       Schema: 'public',
       Type: 'TABLE',
+    },
+    scope: {
+      name: 'foo',
+      schema: 'public',
+      type: 'TABLE',
     },
     sql: multiline`
       CREATE TABLE public.foo (
@@ -373,14 +402,17 @@ test('extracts TABLE', async () => {
 });
 
 test('extracts CONSTRAINT', async () => {
-  const schemaObjects = parsePgDump(dump);
-
-  expect(schemaObjects).toContainEqual({
+  expectSchemeObject({
     header: {
       Name: 'foo foo_pkey',
       Owner: 'postgres',
       Schema: 'public',
       Type: 'CONSTRAINT',
+    },
+    scope: {
+      name: 'foo',
+      schema: 'public',
+      type: 'TABLE',
     },
     sql: multiline`
       ALTER TABLE ONLY public.foo
@@ -390,14 +422,17 @@ test('extracts CONSTRAINT', async () => {
 });
 
 test('extracts COMMENT on TABLE', async () => {
-  const schemaObjects = parsePgDump(dump);
-
-  expect(schemaObjects).toContainEqual({
+  expectSchemeObject({
     header: {
       Name: 'TABLE foo',
       Owner: 'postgres',
       Schema: 'public',
       Type: 'COMMENT',
+    },
+    scope: {
+      name: 'foo',
+      schema: 'public',
+      type: 'TABLE',
     },
     sql: multiline`
       COMMENT ON TABLE public.foo IS 'Table comment x';
@@ -406,14 +441,17 @@ test('extracts COMMENT on TABLE', async () => {
 });
 
 test('extracts COMMENT on COLUMN', async () => {
-  const schemaObjects = parsePgDump(dump);
-
-  expect(schemaObjects).toContainEqual({
+  expectSchemeObject({
     header: {
       Name: 'COLUMN foo.id',
       Owner: 'postgres',
       Schema: 'public',
       Type: 'COMMENT',
+    },
+    scope: {
+      name: 'foo',
+      schema: 'public',
+      type: 'TABLE',
     },
     sql: multiline`
       COMMENT ON COLUMN public.foo.id IS 'Column comment x';
@@ -422,14 +460,17 @@ test('extracts COMMENT on COLUMN', async () => {
 });
 
 test('extracts COMMENT on INDEX', async () => {
-  const schemaObjects = parsePgDump(dump);
-
-  expect(schemaObjects).toContainEqual({
+  expectSchemeObject({
     header: {
       Name: 'INDEX foo_pkey',
       Owner: 'postgres',
       Schema: 'public',
       Type: 'COMMENT',
+    },
+    scope: {
+      name: 'foo',
+      schema: 'public',
+      type: 'TABLE',
     },
     sql: multiline`
       COMMENT ON INDEX public.foo_pkey IS 'Index comment x';
@@ -438,14 +479,17 @@ test('extracts COMMENT on INDEX', async () => {
 });
 
 test('extracts COMMENT on SEQUENCE', async () => {
-  const schemaObjects = parsePgDump(dump);
-
-  expect(schemaObjects).toContainEqual({
+  expectSchemeObject({
     header: {
       Name: 'SEQUENCE foo_id_seq',
       Owner: 'postgres',
       Schema: 'public',
       Type: 'COMMENT',
+    },
+    scope: {
+      name: 'foo',
+      schema: 'public',
+      type: 'TABLE',
     },
     sql: multiline`
       COMMENT ON SEQUENCE public.foo_id_seq IS 'Sequence comment x';
@@ -454,15 +498,14 @@ test('extracts COMMENT on SEQUENCE', async () => {
 });
 
 test('extracts PUBLICATION', async () => {
-  const schemaObjects = parsePgDump(dump);
-
-  expect(schemaObjects).toContainEqual({
+  expectSchemeObject({
     header: {
       Name: 'foo_publication',
       Owner: 'postgres',
       Schema: null,
       Type: 'PUBLICATION',
     },
+    scope: null,
     sql: multiline`
       CREATE PUBLICATION foo_publication FOR ALL TABLES WITH (publish = 'insert, update, delete');
     `,
@@ -470,15 +513,14 @@ test('extracts PUBLICATION', async () => {
 });
 
 test('extracts SCHEMA', async () => {
-  const schemaObjects = parsePgDump(dump);
-
-  expect(schemaObjects).toContainEqual({
+  expectSchemeObject({
     header: {
       Name: 'quux',
       Owner: 'postgres',
       Schema: null,
       Type: 'SCHEMA',
     },
+    scope: null,
     sql: multiline`
       CREATE SCHEMA quux;
     `,
@@ -486,14 +528,17 @@ test('extracts SCHEMA', async () => {
 });
 
 test('extracts VIEW', async () => {
-  const schemaObjects = parsePgDump(dump);
-
-  expect(schemaObjects).toContainEqual({
+  expectSchemeObject({
     header: {
       Name: 'baz',
       Owner: 'postgres',
       Schema: 'public',
       Type: 'VIEW',
+    },
+    scope: {
+      name: 'baz',
+      schema: 'public',
+      type: 'VIEW',
     },
     sql: multiline`
       CREATE VIEW public.baz AS
@@ -504,15 +549,18 @@ test('extracts VIEW', async () => {
   });
 });
 
-test('extracts MATERIALIZED VIEW', async () => {
-  const schemaObjects = parsePgDump(dump);
-
-  expect(schemaObjects).toContainEqual({
+test.only('extracts MATERIALIZED VIEW', async () => {
+  expectSchemeObject({
     header: {
       Name: 'qux',
       Owner: 'postgres',
       Schema: 'public',
       Type: 'MATERIALIZED VIEW',
+    },
+    scope: {
+      name: 'qux',
+      schema: 'public',
+      type: 'MATERIALIZED VIEW',
     },
     sql: multiline`
       CREATE MATERIALIZED VIEW public.qux AS
@@ -525,14 +573,17 @@ test('extracts MATERIALIZED VIEW', async () => {
 });
 
 test('extracts FUNCTION', async () => {
-  const schemaObjects = parsePgDump(dump);
-
-  expect(schemaObjects).toContainEqual({
+  expectSchemeObject({
     header: {
       Name: 'add_two_numbers(integer, integer)',
       Owner: 'postgres',
       Schema: 'public',
       Type: 'FUNCTION',
+    },
+    scope: {
+      name: 'add_two_numbers',
+      schema: 'public',
+      type: 'FUNCTION',
     },
     sql: multiline`
       CREATE FUNCTION public.add_two_numbers(a integer, b integer) RETURNS integer
@@ -547,14 +598,17 @@ test('extracts FUNCTION', async () => {
 });
 
 test('extracts PROCEDURE', async () => {
-  const schemaObjects = parsePgDump(dump);
-
-  expect(schemaObjects).toContainEqual({
+  expectSchemeObject({
     header: {
       Name: 'say_hello(character varying)',
       Owner: 'postgres',
       Schema: 'public',
       Type: 'PROCEDURE',
+    },
+    scope: {
+      name: 'say_hello',
+      schema: 'public',
+      type: 'PROCEDURE',
     },
     sql: multiline`
       CREATE PROCEDURE public.say_hello(IN name_param character varying)
@@ -569,14 +623,17 @@ test('extracts PROCEDURE', async () => {
 });
 
 test('extracts TRIGGER', async () => {
-  const schemaObjects = parsePgDump(dump);
-
-  expect(schemaObjects).toContainEqual({
+  expectSchemeObject({
     header: {
       Name: 'foo foo_insert_trigger',
       Owner: 'postgres',
       Schema: 'public',
       Type: 'TRIGGER',
+    },
+    scope: {
+      name: 'foo',
+      schema: 'public',
+      type: 'TABLE',
     },
     sql: multiline`
       CREATE TRIGGER foo_insert_trigger AFTER INSERT ON public.foo FOR EACH ROW EXECUTE FUNCTION public.notify_foo_insert();
@@ -585,14 +642,17 @@ test('extracts TRIGGER', async () => {
 });
 
 test('extracts TYPE', async () => {
-  const schemaObjects = parsePgDump(dump);
-
-  expect(schemaObjects).toContainEqual({
+  expectSchemeObject({
     header: {
       Name: 'status',
       Owner: 'postgres',
       Schema: 'public',
       Type: 'TYPE',
+    },
+    scope: {
+      name: 'status',
+      schema: 'public',
+      type: 'TYPE',
     },
     sql: multiline`
       CREATE TYPE public.status AS ENUM (
@@ -604,14 +664,17 @@ test('extracts TYPE', async () => {
 });
 
 test('extracts AGGREGATE', async () => {
-  const schemaObjects = parsePgDump(dump);
-
-  expect(schemaObjects).toContainEqual({
+  expectSchemeObject({
     header: {
       Name: 'my_sum(integer)',
       Owner: 'postgres',
       Schema: 'public',
       Type: 'AGGREGATE',
+    },
+    scope: {
+      name: 'my_sum',
+      schema: 'public',
+      type: 'AGGREGATE',
     },
     sql: multiline`
       CREATE AGGREGATE public.my_sum(integer) (
@@ -623,14 +686,17 @@ test('extracts AGGREGATE', async () => {
 });
 
 test('extracts FK CONSTRAINT', async () => {
-  const schemaObjects = parsePgDump(dump);
-
-  expect(schemaObjects).toContainEqual({
+  expectSchemeObject({
     header: {
       Name: 'bar bar_foo_id_fkey',
       Owner: 'postgres',
       Schema: 'public',
       Type: 'FK CONSTRAINT',
+    },
+    scope: {
+      name: 'bar',
+      schema: 'public',
+      type: 'TABLE',
     },
     sql: multiline`
       ALTER TABLE ONLY public.bar
@@ -640,14 +706,17 @@ test('extracts FK CONSTRAINT', async () => {
 });
 
 test('extracts INDEX', async () => {
-  const schemaObjects = parsePgDump(dump);
-
-  expect(schemaObjects).toContainEqual({
+  expectSchemeObject({
     header: {
       Name: 'bar_uid_idx',
       Owner: 'postgres',
       Schema: 'public',
       Type: 'INDEX',
+    },
+    scope: {
+      name: 'bar',
+      schema: 'public',
+      type: 'TABLE',
     },
     sql: multiline`
       CREATE UNIQUE INDEX bar_uid_idx ON public.bar USING btree (uid);
@@ -656,15 +725,14 @@ test('extracts INDEX', async () => {
 });
 
 test('extracts CAST', async () => {
-  const schemaObjects = parsePgDump(dump);
-
-  expect(schemaObjects).toContainEqual({
+  expectSchemeObject({
     header: {
       Name: 'CAST (text AS integer)',
       Owner: null,
       Schema: null,
       Type: 'CAST',
     },
+    scope: null,
     sql: multiline`
       CREATE CAST (text AS integer) WITH INOUT AS IMPLICIT;
     `,
@@ -672,14 +740,17 @@ test('extracts CAST', async () => {
 });
 
 test('extracts EXTENSION', async () => {
-  const schemaObjects = parsePgDump(dump);
-
-  expect(schemaObjects).toContainEqual({
+  expectSchemeObject({
     header: {
       Name: 'pgcrypto',
       Owner: null,
       Schema: null,
       Type: 'EXTENSION',
+    },
+    scope: {
+      name: 'pgcrypto',
+      schema: null,
+      type: 'EXTENSION',
     },
     sql: multiline`
       CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;
@@ -687,15 +758,18 @@ test('extracts EXTENSION', async () => {
   });
 });
 
-test('extracts ACL', async () => {
-  const schemaObjects = parsePgDump(dump);
-
-  expect(schemaObjects).toContainEqual({
+test('extracts ACL (ON TABLE)', async () => {
+  expectSchemeObject({
     header: {
       Name: 'COLUMN foo.name',
       Owner: 'postgres',
       Schema: 'public',
       Type: 'ACL',
+    },
+    scope: {
+      name: 'foo',
+      schema: 'public',
+      type: 'TABLE',
     },
     sql: multiline`
       GRANT SELECT(name) ON TABLE public.foo TO postgres;
@@ -704,14 +778,17 @@ test('extracts ACL', async () => {
 });
 
 test('extracts DEFAULT', async () => {
-  const schemaObjects = parsePgDump(dump);
-
-  expect(schemaObjects).toContainEqual({
+  expectSchemeObject({
     header: {
       Name: 'corge id',
       Owner: 'postgres',
       Schema: 'public',
       Type: 'DEFAULT',
+    },
+    scope: {
+      name: 'corge',
+      schema: 'public',
+      type: 'TABLE',
     },
     sql: multiline`
       ALTER TABLE ONLY public.corge ALTER COLUMN id SET DEFAULT nextval('public.corge_id_seq'::regclass);
@@ -720,14 +797,17 @@ test('extracts DEFAULT', async () => {
 });
 
 test('extracts SEQUENCE OWNED BY', async () => {
-  const schemaObjects = parsePgDump(dump);
-
-  expect(schemaObjects).toContainEqual({
+  expectSchemeObject({
     header: {
       Name: 'corge_id_seq',
       Owner: 'postgres',
       Schema: 'public',
       Type: 'SEQUENCE OWNED BY',
+    },
+    scope: {
+      name: 'corge',
+      schema: 'public',
+      type: 'TABLE',
     },
     sql: multiline`
       ALTER SEQUENCE public.corge_id_seq OWNED BY public.corge.id;

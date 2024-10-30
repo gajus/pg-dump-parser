@@ -57,6 +57,44 @@ The output is an array of objects, each representing a schema object in the dump
 ]
 ```
 
+### Grouping schema objects
+
+`groupSchemaObjects` is an opinionated utility that assigns object to a scope.
+
+```ts
+import { groupSchemaObjects } from 'pg-dump-parser';
+
+const schemaObjects = parsePgDump(dump);
+
+const schemaObjectScope = groupSchemaObjects(schemaObjects);
+  schemaObjects,
+  {
+    header: {
+      Name: 'TABLE foo',
+      Owner: 'postgres',
+      Schema: 'public',
+      Type: 'COMMENT',
+    },
+    sql: multiline`
+      COMMENT ON TABLE public.foo IS 'Table comment x';
+    `,
+  }
+);
+```
+
+`schemaObjectScope` is now an object that describes the owner of the object, e.g.,
+
+```ts
+{
+  name: 'foo',
+  schema: 'public',
+  type: 'TABLE',
+}
+```
+
+> [!DANGER]
+> The implementation behind `groupSchemaObjects` is _super_ scrappy. It relies on a lot of pattern matching. Use at your own risk.
+
 ## Alternatives
 
 * https://github.com/omniti-labs/pg_extractor
