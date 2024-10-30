@@ -28,31 +28,31 @@ The output is an array of objects, each representing a schema object in the dump
 ```json
 [
   {
-      "header": {
-          "Name": "bar",
-          "Owner": "postgres",
-          "Schema": "public",
-          "Type": "TABLE"
-      },
-      "sql": "CREATE TABLE public.bar (\n    id integer NOT NULL,\n    uid text NOT NULL,\n    foo_id integer\n);"
+    "header": {
+        "Name": "bar",
+        "Owner": "postgres",
+        "Schema": "public",
+        "Type": "TABLE"
+    },
+    "sql": "CREATE TABLE public.bar (\n    id integer NOT NULL,\n    uid text NOT NULL,\n    foo_id integer\n);"
   },
   {
-      "header": {
-          "Name": "bar",
-          "Owner": "postgres",
-          "Schema": "public",
-          "Type": "TABLE"
-      },
-      "sql": "ALTER TABLE public.bar OWNER TO postgres;"
+    "header": {
+        "Name": "bar",
+        "Owner": "postgres",
+        "Schema": "public",
+        "Type": "TABLE"
+    },
+    "sql": "ALTER TABLE public.bar OWNER TO postgres;"
   },
   {
-      "header": {
-          "Name": "bar_id_seq",
-          "Owner": "postgres",
-          "Schema": "public",
-          "Type": "SEQUENCE"
-      },
-      "sql": "ALTER TABLE public.bar ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (\n    SEQUENCE NAME public.bar_id_seq\n    START WITH 1\n    INCREMENT BY 1\n    NO MINVALUE\n    NO MAXVALUE\n    CACHE 1\n);"
+    "header": {
+        "Name": "bar_id_seq",
+        "Owner": "postgres",
+        "Schema": "public",
+        "Type": "SEQUENCE"
+    },
+    "sql": "ALTER TABLE public.bar ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (\n    SEQUENCE NAME public.bar_id_seq\n    START WITH 1\n    INCREMENT BY 1\n    NO MINVALUE\n    NO MAXVALUE\n    CACHE 1\n);"
   }
 ]
 ```
@@ -92,7 +92,7 @@ const schemaObjectScope = groupSchemaObjects(schemaObjects);
 }
 ```
 
-> [!DANGER]
+> [!WARNING]
 > The implementation behind `groupSchemaObjects` is _super_ scrappy. It relies on a lot of pattern matching. Use at your own risk.
 
 ## Alternatives

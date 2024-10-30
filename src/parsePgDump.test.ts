@@ -88,6 +88,13 @@ $$;
 ALTER FUNCTION public.add_two_numbers(a integer, b integer) OWNER TO postgres;
 
 --
+-- Name: FUNCTION add_two_numbers(a integer, b integer); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION public.add_two_numbers(a integer, b integer) IS 'Function comment x';
+
+
+--
 -- Name: notify_foo_insert(); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -119,6 +126,13 @@ $$;
 ALTER PROCEDURE public.say_hello(IN name_param character varying) OWNER TO postgres;
 
 --
+-- Name: PROCEDURE say_hello(IN name_param character varying); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON PROCEDURE public.say_hello(IN name_param character varying) IS 'Procedure comment x';
+
+
+--
 -- Name: my_sum(integer); Type: AGGREGATE; Schema: public; Owner: postgres
 --
 
@@ -129,6 +143,13 @@ CREATE AGGREGATE public.my_sum(integer) (
 
 
 ALTER AGGREGATE public.my_sum(integer) OWNER TO postgres;
+
+--
+-- Name: AGGREGATE my_sum(integer); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON AGGREGATE public.my_sum(integer) IS 'Aggregate comment x';
+
 
 SET default_tablespace = '';
 
@@ -346,7 +367,11 @@ GRANT SELECT(name) ON TABLE public.foo TO postgres;
 --
 `;
 
-const omit = <T extends Record<string, unknown>>(object: T, keys: string[]) =>
+const omit = <T extends Record<string, unknown>>(
+  object: T,
+  keys: string[],
+): T =>
+  // @ts-expect-error - Object.fromEntries is not typed
   Object.fromEntries(
     Object.entries(object).filter(([key]) => !keys.includes(key)),
   );
@@ -362,9 +387,9 @@ const expectSchemeObject = (
     return;
   }
 
-  expect(scopeSchemaObject(schemaObjects, expectedSchemaObject)).toEqual(
-    expectedSchemaObject.scope,
-  );
+  expect(
+    scopeSchemaObject(schemaObjects, omit(expectedSchemaObject, ['scope'])),
+  ).toEqual(expectedSchemaObject.scope);
 };
 
 test('extracts SEQUENCE', async () => {
@@ -526,6 +551,63 @@ test('extracts COMMENT on TYPE', async () => {
     },
     sql: multiline`
       COMMENT ON TYPE public.status IS 'Type comment x';
+    `,
+  });
+});
+
+test('extracts COMMENT on FUNCTION', async () => {
+  expectSchemeObject({
+    header: {
+      Name: 'FUNCTION add_two_numbers(a integer, b integer)',
+      Owner: 'postgres',
+      Schema: 'public',
+      Type: 'COMMENT',
+    },
+    scope: {
+      name: 'add_two_numbers',
+      schema: 'public',
+      type: 'FUNCTION',
+    },
+    sql: multiline`
+      COMMENT ON FUNCTION public.add_two_numbers(a integer, b integer) IS 'Function comment x';
+    `,
+  });
+});
+
+test('extracts COMMENT on AGGREGATE', async () => {
+  expectSchemeObject({
+    header: {
+      Name: 'AGGREGATE my_sum(integer)',
+      Owner: 'postgres',
+      Schema: 'public',
+      Type: 'COMMENT',
+    },
+    scope: {
+      name: 'my_sum',
+      schema: 'public',
+      type: 'AGGREGATE',
+    },
+    sql: multiline`
+      COMMENT ON AGGREGATE public.my_sum(integer) IS 'Aggregate comment x';
+    `,
+  });
+});
+
+test('extracts COMMENT on PROCEDURE', async () => {
+  expectSchemeObject({
+    header: {
+      Name: 'PROCEDURE say_hello(IN name_param character varying)',
+      Owner: 'postgres',
+      Schema: 'public',
+      Type: 'COMMENT',
+    },
+    scope: {
+      name: 'say_hello',
+      schema: 'public',
+      type: 'PROCEDURE',
+    },
+    sql: multiline`
+      COMMENT ON PROCEDURE public.say_hello(IN name_param character varying) IS 'Procedure comment x';
     `,
   });
 });

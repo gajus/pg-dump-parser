@@ -119,15 +119,38 @@ const extractAlterTableTarget = (fragment: string): TableTarget => {
   };
 };
 
+const extractFunctionLikeName = (fragment: string): string => {
+  const { name } =
+    fragment.match(
+      // eslint-disable-next-line unicorn/no-unsafe-regex
+      /(?:AGGREGATE|FUNCTION|PROCEDURE)\s+(?:(?<schema>\S+)\.)?(?<name>\w+)\s*\(/u,
+    )?.groups ?? {};
+
+  if (!name) {
+    throw new Error('Invalid FUNCTION name');
+  }
+
+  return name;
+};
+
 type CommentOnTarget = {
   target: string;
-  type: 'COLUMN' | 'EXTENSION' | 'INDEX' | 'SEQUENCE' | 'TABLE' | 'TYPE';
+  type:
+    | 'AGGREGATE'
+    | 'COLUMN'
+    | 'EXTENSION'
+    | 'FUNCTION'
+    | 'INDEX'
+    | 'PROCEDURE'
+    | 'SEQUENCE'
+    | 'TABLE'
+    | 'TYPE';
 };
 
 const extractCommentOnTarget = (fragment: string): CommentOnTarget => {
   const { target, type } =
     fragment.match(
-      /COMMENT ON (?<type>TABLE|EXTENSION|COLUMN|SEQUENCE|INDEX|TYPE)\s(?<target>\S+)/u,
+      /COMMENT ON (?<type>AGGREGATE|COLUMN|EXTENSION|FUNCTION|INDEX|PROCEDURE|SEQUENCE|TABLE|TYPE)\s(?<target>.+?) IS/u,
     )?.groups ?? {};
 
   if (!target) {
@@ -380,6 +403,30 @@ const scopeAttributedSchemaObject = (
         name: typeName,
         schema: subject.header.Schema ?? 'public',
         type: 'TYPE',
+      };
+    }
+
+    if (target.type === 'FUNCTION') {
+      return {
+        name: extractFunctionLikeName(subject.header.Name),
+        schema: subject.header.Schema ?? 'public',
+        type: 'FUNCTION',
+      };
+    }
+
+    if (target.type === 'AGGREGATE') {
+      return {
+        name: extractFunctionLikeName(subject.header.Name),
+        schema: subject.header.Schema ?? 'public',
+        type: 'AGGREGATE',
+      };
+    }
+
+    if (target.type === 'PROCEDURE') {
+      return {
+        name: extractFunctionLikeName(subject.header.Name),
+        schema: subject.header.Schema ?? 'public',
+        type: 'PROCEDURE',
       };
     }
   }
