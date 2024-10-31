@@ -4,7 +4,7 @@ Parses PostgreSQL dump files into an array of schema objects.
 
 ## Motivation
 
-This allows to submit a PostgreSQL schema dump to version control in a way that enables easy diffing.
+The idea behind `pg-dump-parser` is to split the dump file into a series of files. Each file is a top-level schema object (e.g. a table, view, etc.). The same file will contain all the schema objects associated with the top-level object (e.g. comments, indexes, etc.). This makes having the database schema as a reference easier and allows for better checking into version control.
 
 ## Usage
 
@@ -94,6 +94,91 @@ const schemaObjectScope = groupSchemaObjects(schemaObjects);
 
 > [!WARNING]
 > The implementation behind `groupSchemaObjects` is _super_ scrappy. It relies on a lot of pattern matching. Use at your own risk.
+
+## Recipes
+
+I intentionally did not include a script for producing a diff, because a lot of it (how you dump the schema, how you group the schema objects, etc.) is subjective. However, this is a version that we are using in production.
+
+```ts
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import {
+  parsePgDump,
+  SchemaObjectScope,
+  scopeSchemaObject,
+} from 'pg-dump-parser';
+import { default as yargs } from 'yargs';
+import { $ } from 'zx';
+
+const formatFileName = (schemaObjectScope: SchemaObjectScope) => {
+  const name = schemaObjectScope.name.startsWith('"')
+    ? schemaObjectScope.name.slice(1, -1)
+    : schemaObjectScope.name;
+
+  if (schemaObjectScope.schema) {
+    return `${schemaObjectScope.schema}.${name}.sql`;
+  }
+
+  return `${name}.sql`;
+};
+
+const argv = await yargs(process.argv.slice(2))
+  .env('CDA')
+  .options({
+    'output-path': {
+      demand: true,
+      type: 'string',
+    },
+    'postgres-dsn': {
+      demand: true,
+      type: 'string',
+    },
+  })
+  .strict()
+  .parse();
+
+const dump = await $`pg_dump --schema-only ${argv['postgres-dsn']}`;
+
+const schemaObjects = parsePgDump(dump.stdout);
+
+try {
+  await fs.rmdir(argv['output-path'], {
+    recursive: true,
+  });
+} catch {
+  // ignore
+}
+
+await fs.mkdir(argv['output-path']);
+
+const files: Record<string, string[]> = {};
+
+for (const schemaObject of schemaObjects) {
+  const schemaObjectScope = scopeSchemaObject(schemaObjects, schemaObject);
+
+  if (!schemaObjectScope) {
+    continue;
+  }
+
+  const file = path.join(
+    argv['output-path'],
+    // MATERIALIZED VIEW => materialized-views
+    schemaObjectScope.type.toLowerCase().replace(' ', '-') + 's',
+    formatFileName(schemaObjectScope),
+  );
+
+  files[file] ??= [];
+  files[file].push(schemaObject.sql);
+}
+
+for (const [filePath, content] of Object.entries(files)) {
+  const directory = path.dirname(filePath);
+
+  await fs.mkdir(directory, { recursive: true });
+
+  await fs.appendFile(filePath, content.join('\n\n') + '\n');
+}
+```
 
 ## Alternatives
 
