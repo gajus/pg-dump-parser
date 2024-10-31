@@ -6,6 +6,29 @@ Parses PostgreSQL dump files into an array of schema objects.
 
 The idea behind `pg-dump-parser` is to split the dump file into a series of files. Each file is a top-level schema object (e.g. a table, view, etc.). The same file will contain all the schema objects associated with the top-level object (e.g. comments, indexes, etc.). This makes having the database schema as a reference easier and allows for better checking into version control.
 
+The desired end result is something like this (see [recipes](#recipes) for a script that does this):
+
+```
+generated-schema
+├── extensions
+│  ├── citext.sql
+│  └── vector.sql
+├── functions
+│   ├── public.add_two_numbers.sql
+│   └── public.notify_foo_insert.sql
+├── materialized-views
+│   ├── public.project_total_earnings.sql
+│   └── public.user_account_total_earnings.sql
+├── tables
+│   ├── public.accounting_platform_account.sql
+│   └── public.workspace_workspace_group_history.sql
+└── types
+    ├── public.accounting_platform.sql
+    └── public.workspace_type.sql
+```
+
+where each file contains the SQL for the schema object.
+
 ## Usage
 
 ```ts
