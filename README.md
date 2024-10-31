@@ -150,7 +150,6 @@ const formatFileName = (schemaObjectScope: SchemaObjectScope) => {
 };
 
 const argv = await yargs(process.argv.slice(2))
-  .env('CDA')
   .options({
     'output-path': {
       demand: true,
