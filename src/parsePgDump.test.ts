@@ -908,6 +908,32 @@ test('extracts TYPE', async () => {
   });
 });
 
+test('extracts SEQUENCE', async () => {
+  expectSchemeObject({
+    header: {
+      Name: 'bar_id_seq',
+      Owner: 'postgres',
+      Schema: 'public',
+      Type: 'SEQUENCE',
+    },
+    scope: {
+      name: 'bar',
+      schema: 'public',
+      type: 'TABLE',
+    },
+    sql: multiline`
+        ALTER TABLE public.bar ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+            SEQUENCE NAME public.bar_id_seq
+            START WITH 1
+            INCREMENT BY 1
+            NO MINVALUE
+            NO MAXVALUE
+            CACHE 1
+        );
+      `,
+  });
+});
+
 test('extracts AGGREGATE', async () => {
   expectSchemeObject({
     header: {
@@ -1018,6 +1044,63 @@ test('extracts ACL (ON TABLE)', async () => {
     },
     sql: multiline`
       GRANT SELECT(name) ON TABLE public.foo TO postgres;
+    `,
+  });
+});
+
+test('extracts OWNER TO (FUNCTION)', async () => {
+  expectSchemeObject({
+    header: {
+      Name: 'notify_foo_insert()',
+      Owner: 'postgres',
+      Schema: 'public',
+      Type: 'FUNCTION',
+    },
+    scope: {
+      name: 'notify_foo_insert',
+      schema: 'public',
+      type: 'FUNCTION',
+    },
+    sql: multiline`
+      ALTER FUNCTION public.notify_foo_insert() OWNER TO postgres;
+    `,
+  });
+});
+
+test('extracts OWNER TO (TYPE)', async () => {
+  expectSchemeObject({
+    header: {
+      Name: 'status',
+      Owner: 'postgres',
+      Schema: 'public',
+      Type: 'TYPE',
+    },
+    scope: {
+      name: 'status',
+      schema: 'public',
+      type: 'TYPE',
+    },
+    sql: multiline`
+      ALTER TYPE public.status OWNER TO postgres;
+    `,
+  });
+});
+
+test.only('extracts OWNER TO (VIEW)', async () => {
+  expectSchemeObject({
+    header: {
+      Name: 'baz',
+      Owner: 'postgres',
+      Schema: 'public',
+      Type: 'VIEW',
+    },
+    scope: {
+      name: 'baz',
+      schema: 'public',
+      type: 'VIEW',
+    },
+    sql: multiline`
+      ALTER VIEW public.baz OWNER TO postgres;
     `,
   });
 });

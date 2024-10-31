@@ -60,46 +60,6 @@ const extractCreateIndexTarget = (fragment: string): TableTarget => {
   };
 };
 
-const extractCreateViewTarget = (fragment: string): TableTarget => {
-  const { schema, name } =
-    fragment.match(
-      /CREATE VIEW (?:IF NOT EXISTS\s)?(?<schema>[^.]+)\.(?<name>\S+)/u,
-    )?.groups ?? {};
-
-  if (!schema) {
-    throw new Error('Invalid CREATE VIEW target');
-  }
-
-  if (!name) {
-    throw new Error('Invalid CREATE VIEW target');
-  }
-
-  return {
-    name,
-    schema,
-  };
-};
-
-const extractCreateTableTarget = (fragment: string): TableTarget => {
-  const { schema, name } =
-    fragment.match(
-      /CREATE TABLE (?:IF NOT EXISTS\s)?(?<schema>[^.]+)\.(?<name>\S+)/u,
-    )?.groups ?? {};
-
-  if (!schema) {
-    throw new Error('Invalid CREATE TABLE target');
-  }
-
-  if (!name) {
-    throw new Error('Invalid CREATE TABLE target');
-  }
-
-  return {
-    name,
-    schema,
-  };
-};
-
 const extractAlterTableTarget = (fragment: string): TableTarget => {
   const { schema, name } =
     fragment.match(/ALTER TABLE (?:ONLY\s)?(?<schema>[^.]+)\.(?<name>\S+)/u)
@@ -145,6 +105,7 @@ type CommentOnTarget = {
     | 'PROCEDURE'
     | 'SEQUENCE'
     | 'TABLE'
+    | 'TRIGGER'
     | 'TYPE'
     | 'VIEW';
 };
@@ -237,20 +198,20 @@ const scopeComment = (
     };
   }
 
-  if (target.type === 'COLUMN') {
-    const [schema, name] = z
-      .tuple([z.string(), z.string(), z.string()])
-      .parse(target.target.split('.'));
-
-    return findTableLikeOwner(schemaObjects, name, schema);
-  }
-
   if (target.type === 'EXTENSION') {
     return {
       name: target.target,
       schema: null,
       type: 'EXTENSION',
     };
+  }
+
+  if (target.type === 'COLUMN') {
+    const [schema, name] = z
+      .tuple([z.string(), z.string(), z.string()])
+      .parse(target.target.split('.'));
+
+    return findTableLikeOwner(schemaObjects, name, schema);
   }
 
   if (target.type === 'FUNCTION') {
@@ -388,19 +349,11 @@ const scopeAttributedSchemaObject = (
   schemaObjects: AttributedSchemaObject[],
   subject: AttributedSchemaObject,
 ): SchemaObjectScope | null => {
-  if (subject.header.Type === 'FUNCTION') {
+  if (subject.header.Type === 'AGGREGATE') {
     return {
       name: subject.header.Name.split('(')[0],
       schema: subject.header.Schema ?? 'public',
-      type: 'FUNCTION',
-    };
-  }
-
-  if (subject.header.Type === 'PROCEDURE') {
-    return {
-      name: subject.header.Name.split('(')[0],
-      schema: subject.header.Schema ?? 'public',
-      type: 'PROCEDURE',
+      type: 'AGGREGATE',
     };
   }
 
@@ -412,19 +365,19 @@ const scopeAttributedSchemaObject = (
     };
   }
 
-  if (subject.header.Type === 'TYPE') {
-    return {
-      name: subject.header.Name,
-      schema: subject.header.Schema ?? 'public',
-      type: 'TYPE',
-    };
-  }
-
-  if (subject.header.Type === 'AGGREGATE') {
+  if (subject.header.Type === 'FUNCTION') {
     return {
       name: subject.header.Name.split('(')[0],
       schema: subject.header.Schema ?? 'public',
-      type: 'AGGREGATE',
+      type: 'FUNCTION',
+    };
+  }
+
+  if (subject.header.Type === 'EXTENSION') {
+    return {
+      name: subject.header.Name,
+      schema: null,
+      type: 'EXTENSION',
     };
   }
 
@@ -438,14 +391,6 @@ const scopeAttributedSchemaObject = (
     );
   }
 
-  if (subject.header.Type === 'EXTENSION') {
-    return {
-      name: subject.header.Name,
-      schema: null,
-      type: 'EXTENSION',
-    };
-  }
-
   if (subject.header.Type === 'MATERIALIZED VIEW') {
     return {
       name: subject.header.Name,
@@ -454,34 +399,46 @@ const scopeAttributedSchemaObject = (
     };
   }
 
-  if (subject.sql.startsWith('CREATE VIEW ')) {
-    const target = extractCreateViewTarget(subject.sql);
-
+  if (subject.header.Type === 'PROCEDURE') {
     return {
-      name: target.name,
-      schema: target.schema,
-      type: 'VIEW',
+      name: subject.header.Name.split('(')[0],
+      schema: subject.header.Schema ?? 'public',
+      type: 'PROCEDURE',
     };
   }
 
-  if (subject.sql.startsWith('CREATE TABLE ')) {
-    const target = extractCreateTableTarget(subject.sql);
+  if (subject.header.Type === 'SEQUENCE') {
+    // Handled by ALTER TABLE
+  }
 
+  if (subject.header.Type === 'TABLE') {
     return {
-      name: target.name,
-      schema: target.schema,
+      name: subject.header.Name,
+      schema: subject.header.Schema ?? 'public',
       type: 'TABLE',
     };
   }
 
-  if (subject.sql.startsWith('ALTER TABLE ')) {
-    const alterTableTarget = extractAlterTableTarget(subject.sql);
+  if (subject.header.Type === 'TYPE') {
+    return {
+      name: subject.header.Name,
+      schema: subject.header.Schema ?? 'public',
+      type: 'TYPE',
+    };
+  }
 
-    return findTableLikeOwner(
-      schemaObjects,
-      alterTableTarget.name,
-      alterTableTarget.schema,
-    );
+  if (subject.header.Type === 'VIEW') {
+    return {
+      name: subject.header.Name,
+      schema: subject.header.Schema ?? 'public',
+      type: 'VIEW',
+    };
+  }
+
+  if (subject.sql.startsWith('ALTER TABLE ')) {
+    const target = extractAlterTableTarget(subject.sql);
+
+    return findTableLikeOwner(schemaObjects, target.name, target.schema);
   }
 
   if (subject.sql.startsWith('COMMENT ON ')) {
