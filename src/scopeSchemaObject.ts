@@ -337,11 +337,11 @@ const scopeComment = (
 
     const alterTableTarget = extractAlterTableTarget(sequenceSchemaObject.sql);
 
-    return {
-      name: alterTableTarget.name,
-      schema: alterTableTarget.schema,
-      type: 'TABLE',
-    };
+    return findTableLikeOwner(
+      schemaObjects,
+      alterTableTarget.name,
+      alterTableTarget.schema,
+    );
   }
 
   if (target.type === 'TABLE') {
@@ -429,13 +429,13 @@ const scopeAttributedSchemaObject = (
   }
 
   if (subject.header.Type === 'INDEX') {
-    const target = extractCreateIndexTarget(subject.sql);
+    const createIndexTarget = extractCreateIndexTarget(subject.sql);
 
-    return {
-      name: target.name,
-      schema: target.schema,
-      type: 'TABLE',
-    };
+    return findTableLikeOwner(
+      schemaObjects,
+      createIndexTarget.name,
+      createIndexTarget.schema,
+    );
   }
 
   if (subject.header.Type === 'EXTENSION') {
@@ -475,13 +475,13 @@ const scopeAttributedSchemaObject = (
   }
 
   if (subject.sql.startsWith('ALTER TABLE ')) {
-    const target = extractAlterTableTarget(subject.sql);
+    const alterTableTarget = extractAlterTableTarget(subject.sql);
 
-    return {
-      name: target.name,
-      schema: target.schema,
-      type: 'TABLE',
-    };
+    return findTableLikeOwner(
+      schemaObjects,
+      alterTableTarget.name,
+      alterTableTarget.schema,
+    );
   }
 
   if (subject.sql.startsWith('COMMENT ON ')) {
@@ -489,25 +489,25 @@ const scopeAttributedSchemaObject = (
   }
 
   try {
-    const target = extractOwnedByTarget(subject.sql);
+    const ownedByTarget = extractOwnedByTarget(subject.sql);
 
-    return {
-      name: target.name,
-      schema: target.schema,
-      type: 'TABLE',
-    };
+    return findTableLikeOwner(
+      schemaObjects,
+      ownedByTarget.name,
+      ownedByTarget.schema,
+    );
   } catch {
     // ignore
   }
 
   try {
-    const target = extractOnTableTarget(subject.sql);
+    const onTableTarget = extractOnTableTarget(subject.sql);
 
-    return {
-      name: target.name,
-      schema: target.schema,
-      type: 'TABLE',
-    };
+    return findTableLikeOwner(
+      schemaObjects,
+      onTableTarget.name,
+      onTableTarget.schema,
+    );
   } catch {
     // ignore
   }
