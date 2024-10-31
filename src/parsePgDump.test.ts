@@ -1086,7 +1086,7 @@ test('extracts OWNER TO (TYPE)', async () => {
   });
 });
 
-test.only('extracts OWNER TO (VIEW)', async () => {
+test('extracts OWNER TO (VIEW)', async () => {
   expectSchemeObject({
     header: {
       Name: 'baz',
