@@ -1067,6 +1067,25 @@ test('extracts OWNER TO (FUNCTION)', async () => {
   });
 });
 
+test('extracts OWNER TO (TABLE)', async () => {
+  expectSchemeObject({
+    header: {
+      Name: 'foo',
+      Owner: 'postgres',
+      Schema: 'public',
+      Type: 'TABLE',
+    },
+    scope: {
+      name: 'foo',
+      schema: 'public',
+      type: 'TABLE',
+    },
+    sql: multiline`
+      ALTER TABLE public.foo OWNER TO postgres;
+    `,
+  });
+});
+
 test('extracts OWNER TO (TYPE)', async () => {
   expectSchemeObject({
     header: {
