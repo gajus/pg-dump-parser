@@ -32,6 +32,7 @@ where each file contains the SQL for the schema object.
 ## Usage
 
 ```ts
+import { readFile } from 'node:fs/promises';
 import { parsePgDump } from 'pg-dump-parser';
 
 const dump = await readFile('dump.sql', 'utf8');
@@ -85,7 +86,10 @@ The output is an array of objects, each representing a schema object in the dump
 `groupSchemaObjects` is an opinionated utility that assigns object to a scope.
 
 ```ts
+import { readFile } from 'node:fs/promises';
 import { groupSchemaObjects } from 'pg-dump-parser';
+
+const dump = await readFile('dump.sql', 'utf8');
 
 const schemaObjects = parsePgDump(dump);
 
