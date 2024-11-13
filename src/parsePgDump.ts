@@ -64,7 +64,7 @@ const parseValue = (value: string) => {
   return value;
 };
 
-const parseAttribute = (attribute: string): [string, string | null] => {
+const parseAttribute = (attribute: string): [string, null | string] => {
   const [name, value] = attribute.split(':');
 
   return [name, parseValue(value.trim())];

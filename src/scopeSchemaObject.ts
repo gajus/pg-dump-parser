@@ -7,7 +7,7 @@ type TableTarget = {
 };
 
 const extractOwnedByTarget = (fragment: string): TableTarget => {
-  const { schema, name } =
+  const { name, schema } =
     fragment.match(/OWNED BY\s(?<schema>[^.]+)\.(?<name>[^.]+)/u)?.groups ?? {};
 
   if (!schema) {
@@ -25,7 +25,7 @@ const extractOwnedByTarget = (fragment: string): TableTarget => {
 };
 
 const extractOnTableTarget = (fragment: string): TableTarget => {
-  const { schema, name } =
+  const { name, schema } =
     fragment.match(/ON TABLE\s(?<schema>[^.]+)\.(?<name>\S+)/u)?.groups ?? {};
 
   if (!schema) {
@@ -43,7 +43,7 @@ const extractOnTableTarget = (fragment: string): TableTarget => {
 };
 
 const extractCreateIndexTarget = (fragment: string): TableTarget => {
-  const { schema, name } =
+  const { name, schema } =
     fragment.match(/ON\s(?<schema>[^.]+)\.(?<name>\S+)/u)?.groups ?? {};
 
   if (!schema) {
@@ -61,7 +61,7 @@ const extractCreateIndexTarget = (fragment: string): TableTarget => {
 };
 
 const extractAlterTableTarget = (fragment: string): TableTarget => {
-  const { schema, name } =
+  const { name, schema } =
     fragment.match(/ALTER TABLE (?:ONLY\s)?(?<schema>[^.]+)\.(?<name>\S+)/u)
       ?.groups ?? {};
 
@@ -82,7 +82,6 @@ const extractAlterTableTarget = (fragment: string): TableTarget => {
 const extractFunctionLikeName = (fragment: string): string => {
   const { name } =
     fragment.match(
-      // eslint-disable-next-line unicorn/no-unsafe-regex
       /(?:AGGREGATE|FUNCTION|PROCEDURE)\s+(?:(?<schema>\S+)\.)?(?<name>\w+)\s*\(/u,
     )?.groups ?? {};
 
@@ -158,10 +157,10 @@ const findTableLikeOwner = (
   schemaObjects: AttributedSchemaObject[],
   name: string,
   schema: string,
-): SchemaObjectScope | null => {
+): null | SchemaObjectScope => {
   const targetSchemaObject = schemaObjects.find((schemaObject) => {
     return (
-      ['TABLE', 'VIEW', 'MATERIALIZED VIEW'].includes(
+      ['MATERIALIZED VIEW', 'TABLE', 'VIEW'].includes(
         schemaObject.header.Type,
       ) &&
       schemaObject.header.Name === name &&
@@ -183,11 +182,10 @@ const findTableLikeOwner = (
   };
 };
 
-// eslint-disable-next-line complexity
 const scopeComment = (
   schemaObjects: AttributedSchemaObject[],
   subject: AttributedSchemaObject,
-): SchemaObjectScope | null => {
+): null | SchemaObjectScope => {
   const target = extractCommentOnTarget(subject.sql);
 
   if (target.type === 'AGGREGATE') {
@@ -344,11 +342,10 @@ const scopeComment = (
   return null;
 };
 
-// eslint-disable-next-line complexity
 const scopeAttributedSchemaObject = (
   schemaObjects: AttributedSchemaObject[],
   subject: AttributedSchemaObject,
-): SchemaObjectScope | null => {
+): null | SchemaObjectScope => {
   if (subject.header.Type === 'AGGREGATE') {
     return {
       name: subject.header.Name.split('(')[0],
@@ -475,7 +472,7 @@ const scopeAttributedSchemaObject = (
 export const scopeSchemaObject = (
   schemaObjects: SchemaObject[],
   subject: SchemaObject,
-): SchemaObjectScope | null => {
+): null | SchemaObjectScope => {
   if (!('Type' in subject.header)) {
     return null;
   }

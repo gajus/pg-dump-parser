@@ -1,5 +1,4 @@
-import { type SchemaObject } from './parsePgDump';
-import { parsePgDump } from './parsePgDump';
+import { parsePgDump, type SchemaObject } from './parsePgDump';
 import { type SchemaObjectScope, scopeSchemaObject } from './scopeSchemaObject';
 import multiline from 'multiline-ts';
 import { expect, test } from 'vitest';
@@ -412,7 +411,7 @@ const omit = <T extends Record<string, unknown>>(
   );
 
 const expectSchemeObject = (
-  expectedSchemaObject: SchemaObject & { scope: SchemaObjectScope | null },
+  expectedSchemaObject: { scope: null | SchemaObjectScope } & SchemaObject,
 ) => {
   const schemaObjects = parsePgDump(dump);
 
