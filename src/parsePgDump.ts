@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { z } from 'zod';
 
 // These are the attribute less headers, e.g.
@@ -75,36 +76,43 @@ const parseAttribute = (attribute: string): [string, null | string] => {
 // --
 
 const parseHeader = (fragment: string) => {
-  const lines = fragment.split('\n');
+  try {
+    const lines = fragment.split('\n');
 
-  if (lines.length !== 3) {
-    throw new Error('Invalid header');
+    if (lines.length !== 3) {
+      throw new Error('Invalid header');
+    }
+
+    const contentLine = lines[1].slice(3);
+
+    if (
+      contentLine === 'PostgreSQL database dump' ||
+      contentLine === 'PostgreSQL database dump complete'
+    ) {
+      return HeaderZodSchema.parse({
+        Title: contentLine,
+      });
+    }
+
+    const content = Object.fromEntries(
+      contentLine.split('; ').map((attribute) => {
+        return parseAttribute(attribute);
+      }),
+    );
+
+    const result = HeaderZodSchema.safeParse(content);
+
+    if (!result.success) {
+      throw new Error('Invalid header');
+    }
+
+    return result.data;
+  } catch (error) {
+    console.warn('[pg-dump-parser] failing fragment');
+    console.warn(fragment);
+
+    throw error;
   }
-
-  const contentLine = lines[1].slice(3);
-
-  if (
-    contentLine === 'PostgreSQL database dump' ||
-    contentLine === 'PostgreSQL database dump complete'
-  ) {
-    return HeaderZodSchema.parse({
-      Title: contentLine,
-    });
-  }
-
-  const content = Object.fromEntries(
-    contentLine.split('; ').map((attribute) => {
-      return parseAttribute(attribute);
-    }),
-  );
-
-  const result = HeaderZodSchema.safeParse(content);
-
-  if (!result.success) {
-    throw new Error('Invalid header');
-  }
-
-  return result.data;
 };
 
 export type SchemaObject = {
