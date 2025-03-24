@@ -35,6 +35,7 @@ const AttributedHeaderZodSchema = z.object({
     'SCHEMA',
     'SEQUENCE OWNED BY',
     'SEQUENCE',
+    'TABLE ATTACH',
     'TABLE',
     'TEXT SEARCH CONFIGURATION',
     'TEXT SEARCH DICTIONARY',

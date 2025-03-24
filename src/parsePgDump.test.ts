@@ -315,6 +315,12 @@ COMMENT ON COLUMN public.qux.id IS 'Column comment x';
 
 
 --
+-- Name: portfolio_project_search_hit_default; Type: TABLE ATTACH; Schema: public; Owner: flyway
+--
+
+ALTER TABLE ONLY public.portfolio_project_search_hit ATTACH PARTITION public.portfolio_project_search_hit_default DEFAULT;
+
+--
 -- Name: corge id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
