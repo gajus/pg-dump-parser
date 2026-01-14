@@ -5,21 +5,22 @@
     "declarationMap": true,
     "esModuleInterop": true,
     "lib": [
-      "es2021"
+      "es2023"
     ],
-    "module": "commonjs",
-    "moduleResolution": "node",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "noEmit": true,
     "noImplicitAny": false,
     "noImplicitReturns": true,
     "skipLibCheck": true,
     "sourceMap": true,
     "strict": true,
-    "target": "es2018",
+    "target": "es2022",
     "useUnknownInCatchVariables": false
   },
   "include": [
     "src",
+    "eslint.config.ts",
     "vitest.config.ts"
   ]
 }

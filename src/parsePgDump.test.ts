@@ -417,7 +417,7 @@ const omit = <T extends Record<string, unknown>>(
   );
 
 const expectSchemeObject = (
-  expectedSchemaObject: { scope: null | SchemaObjectScope } & SchemaObject,
+  expectedSchemaObject: SchemaObject & { scope: null | SchemaObjectScope },
 ) => {
   const schemaObjects = parsePgDump(dump);
 

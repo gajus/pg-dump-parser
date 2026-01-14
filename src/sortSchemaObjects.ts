@@ -117,8 +117,14 @@ const compareSchemaObjects = (
   const aSchema = aHeader.Schema ?? '';
   const bSchema = bHeader.Schema ?? '';
   if (aSchema !== bSchema) {
-    if (aSchema === '') return -1;
-    if (bSchema === '') return 1;
+    if (aSchema === '') {
+      return -1;
+    }
+
+    if (bSchema === '') {
+      return 1;
+    }
+
     return aSchema.localeCompare(bSchema);
   }
 
@@ -259,16 +265,25 @@ export const groupAndSortSchemaObjects = (
 
   // Sort the groups themselves
   const sortedGrouped = new Map(
+    // eslint-disable-next-line unicorn/no-array-sort
     [...grouped.entries()].sort(([keyA], [keyB]) => {
       // Title headers first
-      if (keyA === '_TITLE') return -1;
-      if (keyB === '_TITLE') return 1;
+      if (keyA === '_TITLE') {
+        return -1;
+      }
+
+      if (keyB === '_TITLE') {
+        return 1;
+      }
 
       // Then unscoped objects
-      if (keyA.startsWith('_UNSCOPED:') && !keyB.startsWith('_UNSCOPED:'))
+      if (keyA.startsWith('_UNSCOPED:') && !keyB.startsWith('_UNSCOPED:')) {
         return -1;
-      if (!keyA.startsWith('_UNSCOPED:') && keyB.startsWith('_UNSCOPED:'))
+      }
+
+      if (!keyA.startsWith('_UNSCOPED:') && keyB.startsWith('_UNSCOPED:')) {
         return 1;
+      }
 
       // Sort by type, schema, then name
       return keyA.localeCompare(keyB);

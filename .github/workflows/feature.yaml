@@ -11,8 +11,7 @@ jobs:
       - name: setup node.js
         uses: actions/setup-node@v2
         with:
-          cache: 'npm'
-          node-version: '22'
+          node-version: '24'
       - run: npm ci
       - run: npm run lint:eslint
       - run: npm run lint:tsc
@@ -23,7 +22,7 @@ jobs:
     name: Test
     needs:
       - lint
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     steps:
       - name: setup repository
         uses: actions/checkout@v2
@@ -32,17 +31,10 @@ jobs:
       - name: setup node.js
         uses: actions/setup-node@v2
         with:
-          cache: 'npm'
-          node-version: ${{ matrix.version }}
+          node-version: 24
       - run: npm ci
       - run: npm run test:vitest
       - run: npm run build
-    strategy:
-      matrix:
-        os:
-          - ubuntu-latest
-        version:
-          - 22
     timeout-minutes: 10
 name: Test and build
 on:

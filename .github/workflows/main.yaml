@@ -1,7 +1,7 @@
 jobs:
-  test:
+  release:
     environment: release
-    name: Test
+    name: Release
     runs-on: ubuntu-latest
     steps:
       - name: setup repository
@@ -11,8 +11,7 @@ jobs:
       - name: setup node.js
         uses: actions/setup-node@v2
         with:
-          cache: 'npm'
-          node-version: '22'
+          node-version: '24'
       - run: npm ci
       - run: npm run lint:eslint
       - run: npm run lint:tsc
@@ -21,9 +20,8 @@ jobs:
       - run: npm run build
       - env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npx semantic-release
-name: Test, build and release
+name: Release
 on:
   push:
     branches:

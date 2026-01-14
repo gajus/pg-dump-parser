@@ -2,7 +2,7 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
-    singleThread: true,
+    include: ['src/**/*.test.ts'],
     testTimeout: 5_000,
   },
 });

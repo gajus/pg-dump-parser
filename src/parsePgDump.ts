@@ -50,9 +50,9 @@ const HeaderZodSchema = z.union([
   AttributedHeaderZodSchema,
 ]);
 
+export type AttributedHeader = z.infer<typeof AttributedHeaderZodSchema>;
 export type Header = z.infer<typeof HeaderZodSchema>;
 export type TitleHeader = z.infer<typeof TitleHeaderZodSchema>;
-export type AttributedHeader = z.infer<typeof AttributedHeaderZodSchema>;
 
 const isHeader = (fragment: string): boolean => {
   return fragment.startsWith('--\n--');
