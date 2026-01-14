@@ -122,6 +122,34 @@ const schemaObjectScope = groupSchemaObjects(schemaObjects);
 > [!WARNING]
 > The implementation behind `groupSchemaObjects` is _super_ scrappy. It relies on a lot of pattern matching. Use at your own risk.
 
+### Sorting schema objects
+
+The library provides utilities to sort schema objects for better readability and consistency:
+
+```ts
+import { readFile } from 'node:fs/promises';
+import { parsePgDump, sortSchemaObjects, sortSchemaObjectsByScope, groupAndSortSchemaObjects } from 'pg-dump-parser';
+
+const dump = await readFile('dump.sql', 'utf8');
+const schemaObjects = parsePgDump(dump);
+
+// Sort all schema objects by type, then by name
+const sorted = sortSchemaObjects(schemaObjects);
+
+// Sort objects while preserving their grouping by scope (table, view, etc.)
+const sortedByScope = sortSchemaObjectsByScope(schemaObjects);
+
+// Group objects by their scope and sort within each group
+const grouped = groupAndSortSchemaObjects(schemaObjects);
+```
+
+The sorting applies the following rules:
+- **Type ordering**: Extensions → Schemas → Types → Functions/Procedures → Tables → Constraints → Indexes → Views → Triggers → Comments → etc.
+- **Constraints**: Sorted by type (PRIMARY KEY → UNIQUE → FOREIGN KEY → CHECK → others)
+- **Indexes**: Sorted alphabetically by name within the same table
+- **Comments**: Sorted by target type, then by target name
+- **Columns**: Preserved in their original order from the CREATE TABLE statement
+
 ## Recipes
 
 I intentionally did not include a script for producing a diff, because a lot of it (how you dump the schema, how you group the schema objects, etc.) is subjective. However, this is a version that we are using in production.
@@ -133,6 +161,7 @@ import {
   parsePgDump,
   SchemaObjectScope,
   scopeSchemaObject,
+  sortSchemaObjectsByScope,
 } from 'pg-dump-parser';
 import { default as yargs } from 'yargs';
 import { $ } from 'zx';
@@ -167,6 +196,9 @@ const dump = await $`pg_dump --schema-only ${argv['postgres-dsn']}`;
 
 const schemaObjects = parsePgDump(dump.stdout);
 
+// Sort the schema objects for consistent output
+const sortedSchemaObjects = sortSchemaObjectsByScope(schemaObjects);
+
 try {
   await fs.rmdir(argv['output-path'], {
     recursive: true,
@@ -179,8 +211,8 @@ await fs.mkdir(argv['output-path']);
 
 const files: Record<string, string[]> = {};
 
-for (const schemaObject of schemaObjects) {
-  const schemaObjectScope = scopeSchemaObject(schemaObjects, schemaObject);
+for (const schemaObject of sortedSchemaObjects) {
+  const schemaObjectScope = scopeSchemaObject(sortedSchemaObjects, schemaObject);
 
   if (!schemaObjectScope) {
     continue;

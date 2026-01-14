@@ -6,3 +6,8 @@ export {
   type TitleHeader,
 } from './parsePgDump';
 export { type SchemaObjectScope, scopeSchemaObject } from './scopeSchemaObject';
+export {
+  groupAndSortSchemaObjects,
+  sortSchemaObjects,
+  sortSchemaObjectsByScope,
+} from './sortSchemaObjects';
