@@ -46,6 +46,25 @@ COMMENT ON EXTENSION pgcrypto IS 'cryptographic functions';
 
 
 --
+-- Name: uid; Type: DOMAIN; Schema: public; Owner: postgres
+--
+
+CREATE DOMAIN public.uid AS text
+    DEFAULT uuid_generate_v4()
+    CONSTRAINT uid_not_empty CHECK ((length(VALUE) > 0));
+
+
+ALTER DOMAIN public.uid OWNER TO postgres;
+
+
+--
+-- Name: DOMAIN uid; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON DOMAIN public.uid IS 'User identifier domain';
+
+
+--
 -- Name: status; Type: TYPE; Schema: public; Owner: postgres
 --
 
@@ -1030,6 +1049,46 @@ test('extracts EXTENSION', async () => {
     },
     sql: multiline`
       CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;
+    `,
+  });
+});
+
+test('extracts DOMAIN', async () => {
+  expectSchemeObject({
+    header: {
+      Name: 'uid',
+      Owner: 'postgres',
+      Schema: 'public',
+      Type: 'DOMAIN',
+    },
+    scope: {
+      name: 'uid',
+      schema: 'public',
+      type: 'DOMAIN',
+    },
+    sql: multiline`
+      CREATE DOMAIN public.uid AS text
+          DEFAULT uuid_generate_v4()
+          CONSTRAINT uid_not_empty CHECK ((length(VALUE) > 0));
+    `,
+  });
+});
+
+test('extracts COMMENT on DOMAIN', async () => {
+  expectSchemeObject({
+    header: {
+      Name: 'DOMAIN uid',
+      Owner: 'postgres',
+      Schema: 'public',
+      Type: 'COMMENT',
+    },
+    scope: {
+      name: 'uid',
+      schema: 'public',
+      type: 'DOMAIN',
+    },
+    sql: multiline`
+      COMMENT ON DOMAIN public.uid IS 'User identifier domain';
     `,
   });
 });

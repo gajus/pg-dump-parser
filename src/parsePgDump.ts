@@ -25,6 +25,7 @@ const AttributedHeaderZodSchema = z.object({
     'CONSTRAINT',
     'DEFAULT ACL',
     'DEFAULT',
+    'DOMAIN',
     'EXTENSION',
     'FK CONSTRAINT',
     'FUNCTION',

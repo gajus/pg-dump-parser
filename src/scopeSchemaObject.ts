@@ -97,6 +97,7 @@ type CommentOnTarget = {
   type:
     | 'AGGREGATE'
     | 'COLUMN'
+    | 'DOMAIN'
     | 'EXTENSION'
     | 'FUNCTION'
     | 'INDEX'
@@ -112,7 +113,7 @@ type CommentOnTarget = {
 const extractCommentOnTarget = (fragment: string): CommentOnTarget => {
   const { target, type } =
     fragment.match(
-      /COMMENT ON (?<type>AGGREGATE|COLUMN|EXTENSION|FUNCTION|INDEX|MATERIALIZED VIEW|PROCEDURE|SEQUENCE|TABLE|TYPE|VIEW)\s(?<target>.+?) IS/u,
+      /COMMENT ON (?<type>AGGREGATE|COLUMN|DOMAIN|EXTENSION|FUNCTION|INDEX|MATERIALIZED VIEW|PROCEDURE|SEQUENCE|TABLE|TYPE|VIEW)\s(?<target>.+?) IS/u,
     )?.groups ?? {};
 
   if (!target) {
@@ -140,6 +141,7 @@ export type SchemaObjectScope =
       schema: string;
       type:
         | 'AGGREGATE'
+        | 'DOMAIN'
         | 'FUNCTION'
         | 'MATERIALIZED VIEW'
         | 'PROCEDURE'
@@ -339,6 +341,18 @@ const scopeComment = (
     };
   }
 
+  if (target.type === 'DOMAIN') {
+    const [, domainName] = z
+      .tuple([z.string(), z.string()])
+      .parse(subject.header.Name.split(' '));
+
+    return {
+      name: domainName,
+      schema: subject.header.Schema ?? 'public',
+      type: 'DOMAIN',
+    };
+  }
+
   return null;
 };
 
@@ -421,6 +435,14 @@ const scopeAttributedSchemaObject = (
       name: subject.header.Name,
       schema: subject.header.Schema ?? 'public',
       type: 'TYPE',
+    };
+  }
+
+  if (subject.header.Type === 'DOMAIN') {
+    return {
+      name: subject.header.Name,
+      schema: subject.header.Schema ?? 'public',
+      type: 'DOMAIN',
     };
   }
 
