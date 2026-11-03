@@ -6,19 +6,19 @@ import { scopeSchemaObject } from './scopeSchemaObject';
  */
 const TYPE_SORT_ORDER: Record<string, number> = {
   // ACLs and other
-  ACL: 18,
+  ACL: 20,
 
   AGGREGATE: 6,
-  CAST: 22,
+  CAST: 24,
 
   // Comments
-  COMMENT: 17,
+  COMMENT: 19,
   // Constraints (sorted by type)
   CONSTRAINT: 11,
   // Table modifications and defaults
   DEFAULT: 10,
 
-  'DEFAULT ACL': 19,
+  'DEFAULT ACL': 21,
   // Extensions first
   EXTENSION: 1,
   'FK CONSTRAINT': 12,
@@ -30,11 +30,15 @@ const TYPE_SORT_ORDER: Record<string, number> = {
   INDEX: 13,
   'MATERIALIZED VIEW': 15,
 
+  POLICY: 18,
+
   PROCEDURE: 5,
 
   // Publications and casts
-  PUBLICATION: 21,
+  PUBLICATION: 23,
   // Types and schemas
+  'ROW SECURITY': 17,
+
   SCHEMA: 2,
 
   SEQUENCE: 8,
@@ -44,12 +48,12 @@ const TYPE_SORT_ORDER: Record<string, number> = {
   // Tables and sequences
   TABLE: 7,
   // Table attachments
-  'TABLE ATTACH': 20,
+  'TABLE ATTACH': 22,
 
-  'TEXT SEARCH CONFIGURATION': 24,
+  'TEXT SEARCH CONFIGURATION': 26,
 
   // Text search
-  'TEXT SEARCH DICTIONARY': 23,
+  'TEXT SEARCH DICTIONARY': 25,
   // Triggers
   TRIGGER: 16,
 
@@ -181,6 +185,8 @@ const compareSchemaObjects = (
         FUNCTION: 4,
         INDEX: 10,
         MATERIALIZED: 12,
+        POLICY: 13,
+
         PROCEDURE: 5,
         SCHEMA: 2,
         SEQUENCE: 9,
