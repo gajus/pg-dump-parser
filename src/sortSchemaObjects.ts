@@ -36,9 +36,8 @@ const TYPE_SORT_ORDER: Record<string, number> = {
 
   // Publications and casts
   PUBLICATION: 23,
-  // Types and schemas
   'ROW SECURITY': 17,
-
+  // Types and schemas
   SCHEMA: 2,
 
   SEQUENCE: 8,
@@ -186,7 +185,6 @@ const compareSchemaObjects = (
         INDEX: 10,
         MATERIALIZED: 12,
         POLICY: 13,
-
         PROCEDURE: 5,
         SCHEMA: 2,
         SEQUENCE: 9,

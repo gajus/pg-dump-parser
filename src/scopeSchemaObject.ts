@@ -199,7 +199,9 @@ const findTableLikeOwner = (
     name,
     schema,
     type: targetSchemaObject.header.Type as
-      'MATERIALIZED VIEW' | 'TABLE' | 'VIEW',
+      | 'MATERIALIZED VIEW'
+      | 'TABLE'
+      | 'VIEW',
   };
 };
 
