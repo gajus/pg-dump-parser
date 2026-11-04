@@ -79,6 +79,27 @@ const extractAlterTableTarget = (fragment: string): TableTarget => {
   };
 };
 
+const extractPolicyTarget = (fragment: string): TableTarget => {
+  const { name, schema } =
+    fragment.match(
+      /^(?:CREATE|COMMENT ON) POLICY\s+(?:"(?:[^"]|"")*"|[^\s"]+)\s+ON\s+(?<schema>"(?:[^"]|"")*"|[^.\s"]+)\.(?<name>"(?:[^"]|"")*"|[^\s;"]+)/u,
+    )?.groups ?? {};
+
+  if (!schema || !name) {
+    throw new Error('Invalid POLICY target');
+  }
+
+  const unquote = (identifier: string) =>
+    identifier.startsWith('"')
+      ? identifier.slice(1, -1).replaceAll('""', '"')
+      : identifier;
+
+  return {
+    name: unquote(name),
+    schema: unquote(schema),
+  };
+};
+
 const extractFunctionLikeName = (fragment: string): string => {
   const { name } =
     fragment.match(
@@ -356,10 +377,29 @@ const scopeComment = (
   return null;
 };
 
+const isPolicy = (subject: AttributedSchemaObject): boolean =>
+  subject.header.Type === 'POLICY' ||
+  (subject.header.Type === 'COMMENT' &&
+    subject.sql.startsWith('COMMENT ON POLICY '));
+
 const scopeAttributedSchemaObject = (
   schemaObjects: AttributedSchemaObject[],
   subject: AttributedSchemaObject,
 ): null | SchemaObjectScope => {
+  if (isPolicy(subject)) {
+    const target = extractPolicyTarget(subject.sql);
+
+    return findTableLikeOwner(schemaObjects, target.name, target.schema);
+  }
+
+  if (subject.header.Type === 'ROW SECURITY') {
+    return findTableLikeOwner(
+      schemaObjects,
+      subject.header.Name,
+      subject.header.Schema ?? 'public',
+    );
+  }
+
   if (subject.header.Type === 'AGGREGATE') {
     return {
       name: subject.header.Name.split('(')[0],
