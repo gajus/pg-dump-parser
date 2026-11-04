@@ -7,23 +7,31 @@ import {
 import { expect, test } from 'vitest';
 
 test.each([
-  { name: 'files', schema: 'public', target: 'public.files' },
+  {
+    name: 'files',
+    quotedName: 'files',
+    schema: 'public',
+    target: 'public.files',
+  },
   {
     name: 'project "files.on"',
+    quotedName: '"project ""files.on"""',
     schema: 'catalog.data',
     target: '"catalog.data"."project ""files.on"""',
   },
 ])(
   'scopes row security and policies to $target',
-  ({ name, schema, target }) => {
+  ({ name, quotedName, schema, target }) => {
     const dump = `--
 -- Name: ${name}; Type: TABLE; Schema: ${schema}; Owner: postgres
 --
 
 CREATE TABLE ${target} (project_id integer);
 
+ALTER TABLE ONLY ${target} FORCE ROW LEVEL SECURITY;
 
-ALTER TABLE ${target} FORCE ROW LEVEL SECURITY;
+
+ALTER TABLE ${target} OWNER TO postgres;
 
 
 --
@@ -36,10 +44,10 @@ ALTER TABLE ${target} ENABLE ROW LEVEL SECURITY;
 -- Name: ${name} project access; Type: POLICY; Schema: ${schema}; Owner: postgres
 --
 
-CREATE POLICY "project access" ON ${target} AS RESTRICTIVE FOR ALL TO reader USING ((project_id = 1)) WITH CHECK ((project_id = 1));
+CREATE POLICY "project access" ON ${target} AS RESTRICTIVE TO reader USING ((project_id = 1)) WITH CHECK ((project_id = 1));
 
 --
--- Name: POLICY "project access" ON ${name}; Type: COMMENT; Schema: ${schema}; Owner: postgres
+-- Name: POLICY "project access" ON ${quotedName}; Type: COMMENT; Schema: ${schema}; Owner: postgres
 --
 
 COMMENT ON POLICY "project access" ON ${target} IS 'Project access';
@@ -54,8 +62,8 @@ COMMENT ON POLICY "project access" ON ${target} IS 'Project access';
       });
     }
 
-    expect(objects.map((object) => object.sql)).toContain(
-      `ALTER TABLE ${target} FORCE ROW LEVEL SECURITY;`,
+    expect(objects[0].sql).toContain(
+      `ALTER TABLE ONLY ${target} FORCE ROW LEVEL SECURITY;`,
     );
     const sorted = sortSchemaObjects(objects.toReversed());
     const types = sorted.map(
